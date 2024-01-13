@@ -14,7 +14,6 @@ string addition(string a, string b)
     string wynik = "";
 
     int przeniesienie = 0;
-
     // dodajemy kolejne cyfry a i b
 
     while (pozycja_a >= 0 or pozycja_b >= 0)
@@ -122,33 +121,195 @@ string subtraction(string a, string b) {
         }
 
         if (negative) {
-            wynik = "-" + wynik; 
+            wynik = "-" + wynik;
         }
 
         return wynik;
     }
 }
 
+
+string multiplication(string a, string b) {
+    // Обробка знаків
+    bool isNegative = (a[0] == '-' and b[0] != '-') or (a[0] != '-' and b[0] == '-');
+    if (a[0] == '-') a.erase(0, 1);
+    if (b[0] == '-') b.erase(0, 1);
+
+    // Ініціалізація масиву для результату
+    int* result = new int[a.length() + b.length()] {0};
+
+    // Множення цифр
+    for (int i = a.length() - 1; i >= 0; i--) {
+        for (int j = b.length() - 1; j >= 0; j--) {
+            int mul = (a[i] - '0') * (b[j] - '0');
+            int sum = result[i + j + 1] + mul;
+
+            result[i + j + 1] = sum % 10;
+            result[i + j] += sum / 10;
+        }
+    }
+
+    // Конвертування результату у рядок
+    string res = "";
+    for (int i = 0; i < a.length() + b.length(); i++) {
+        if (!(res.empty() and result[i] == 0)) {
+            res.push_back(result[i] + '0');
+        }
+    }
+
+    // Перевірка на випадок, якщо результат дорівнює нулю
+    if (res.empty()) res = "0";
+
+    // Додавання знаку, якщо потрібно
+    if (isNegative and res != "0") {
+        res = "-" + res;
+    }
+
+    // Видалення масиву
+    delete[] result;
+
+    return res;
+}
+
+
+string division(string dividend, string divisor) {
+    // Перевірка на ділення на нуль
+    if (divisor == "0") {
+        return "Division by zero is not allowed";
+    }
+
+    // Перевірка, чи дільник більший за ділене
+    if (dividend.length() < divisor.length() or (dividend.length() == divisor.length() and dividend < divisor)) {
+        return "0";
+    }
+
+    // Ініціалізація змінних
+    string result = "";
+    string part = "";
+
+    int index = 0;
+
+    while (index < dividend.length()) {
+        part += dividend[index++];
+
+        if (part.length() > 1 && part[0] == '0') {
+            part.erase(0, 1); // Видаляємо ведучі нулі
+        }
+
+        if (part.length() < divisor.length() || (part.length() == divisor.length() && part < divisor)) {
+            if (!result.empty() || index >= dividend.length()) { // Додаємо 0 тільки якщо у результаті вже є значущі цифри або це остання ітерація
+                result += "0";
+            }
+            continue;
+        }
+
+        // Знаходимо, скільки разів дільник вміщується у поточній частині
+        int count = 0;
+        string tempDivisor = divisor;
+        while ((part.length() > tempDivisor.length() || (part.length() == tempDivisor.length() && part >= tempDivisor))) {
+            count++;
+            tempDivisor = addition(divisor, tempDivisor); // Використовуємо вашу функцію addition для додавання
+        }
+
+        // Дописуємо результат
+        result += to_string(count);
+
+        // Вираховуємо різницю
+        part = subtraction(part, multiplication(to_string(count - 1), divisor)); // Використовуємо ваші функції multiplication і subtraction
+    }
+
+    return result;
+}
+
+string handleSignAndOperation(string a, string b, char op) {
+    // Визначення від'ємних чисел
+    bool isANegative = a[0] == '-';
+    bool isBNegative = b[0] == '-';
+
+    if (isANegative) a = a.substr(1);
+    if (isBNegative) b = b.substr(1);
+
+    if (op == '+') {
+        if (isANegative == isBNegative) {
+            if (isANegative) {
+                return "-" + addition(a, b);
+            }
+            else {
+                return addition(a, b);
+            }
+        }
+        else {
+            if (isANegative) {
+                return subtraction(b, a);
+            }
+            else {
+                return subtraction(a, b);
+            }
+        }
+    }
+    else if (op == '-') {
+        if (isANegative == isBNegative) {
+            if (isANegative) {
+                return subtraction(b, a);
+            }
+            else {
+                return subtraction(a, b);
+            }
+        }
+        else {
+            if (isANegative) {
+                return "-" + addition(a, b);
+            }
+            else {
+                return addition(a, b);
+            }
+        }
+    }
+    return "Invalid Operation"; // На випадок неправильного введення
+}
+
+
+
 int main()
 {
-    string a, b;
+    int Z;
+    cin >> Z;
 
-    do {
-        cout << "Write your numbers" << endl;
-        getline(cin, a);
-        getline(cin, b);
-    } while (a.empty() || b.empty());
+    string* tests = new string[Z]; // Динамічний масив для тестів
+    string* results = new string[Z]; // Динамічний масив для результатів
 
+    for (int i = 0; i < Z; i++) {
+        cin >> tests[i];
+    }
 
-    cout << a << " + " << b << " = " << addition(a, b) << endl;
+    for (int i = 0; i < Z; i++) {
+        string test = tests[i];
+        size_t operatorPos = test.find_first_of("+-*/");
+        string a = test.substr(0, operatorPos);
+        string b = test.substr(operatorPos + 1);
+        char op = test[operatorPos];
 
-    cout << a << " - " << b << " = " << subtraction(a, b) << endl;
+        if (op == '+') {
+            results[i] = handleSignAndOperation(a, b, '+');
+        }
+        else if (op == '-') {
+            results[i] = handleSignAndOperation(a, b, '-');
+        }
+        else if (op == '*') {
+            results[i] = multiplication(a, b);
+        }
+        else if (op == '/') {
+            results[i] = division(a, b);
+        }
+    }
 
+    for (int i = 0; i < Z; i++) {
+        cout << results[i] << endl;
+    }
 
+    // Очищення виділеної пам'яті
+    delete[] tests;
+    delete[] results;
 
-    return 0;
-    
-
-  
-   
+    system("pause");
 }
